@@ -71,6 +71,9 @@
     <test.warehouse.dir>${project.build.directory}/warehouse</test.warehouse.dir>
     <test.warehouse.scheme>pfile://</test.warehouse.scheme>
 
+    <!-- To add additional exclude patterns set this property -->
+    <test.excludes.additional></test.excludes.additional>
+
     <!-- Plugin and Plugin Dependency Versions -->
     <ant.contrib.version>1.0b3</ant.contrib.version>
     <datanucleus.maven.plugin.version>3.3.0-release</datanucleus.maven.plugin.version>
@@ -152,7 +155,7 @@
     <stax.version>1.0.1</stax.version>
     <slf4j.version>1.7.5</slf4j.version>
     <ST4.version>4.0.4</ST4.version>
-    <tez.version>0.5.2-SNAPSHOT</tez.version>
+    <tez.version>0.5.2</tez.version>
     <super-csv.version>2.2.0</super-csv.version>
     <tempus-fugit.version>1.1</tempus-fugit.version>
     <snappy.version>0.2</snappy.version>
@@ -782,6 +785,7 @@
             <exclude>**/ql/exec/vector/udf/generic/*.java</exclude>
             <exclude>**/TestHiveServer2Concurrency.java</exclude>
             <exclude>**/TestHiveMetaStore.java</exclude>
+            <exclude>${test.excludes.additional}</exclude>
           </excludes>
           <redirectTestOutputToFile>true</redirectTestOutputToFile>
           <reuseForks>false</reuseForks>
@@ -829,7 +833,7 @@
             <test.warehouse.dir>${test.warehouse.scheme}${test.warehouse.dir}</test.warehouse.dir>
             <java.net.preferIPv4Stack>true</java.net.preferIPv4Stack>
             <!-- EnforceReadOnlyTables hook and QTestUtil -->
-            <test.src.tables>src,src1,srcbucket,srcbucket2,src_json,src_thrift,src_sequencefile,srcpart,alltypesorc,src_hbase</test.src.tables>
+            <test.src.tables>src,src1,srcbucket,srcbucket2,src_json,src_thrift,src_sequencefile,srcpart,alltypesorc,src_hbase,cbo_t1,cbo_t2,cbo_t3,src_cbo,part,lineitem</test.src.tables>
             <java.security.krb5.conf>${test.tmp.dir}/conf/krb5.conf</java.security.krb5.conf>
           </systemPropertyVariables>
         </configuration>
@@ -866,6 +870,11 @@
 	    <exclude>**/gen-java/**</exclude>
 	    <exclude>**/testdata/**</exclude>
 	    <exclude>**/ptest2/*.md</exclude>
+	    <exclude>**/test/org/apache/hadoop/hive/hbase/avro/**</exclude>
+	    <exclude>**/avro_test.avpr</exclude>
+	    <exclude>**/xmlReport.pl</exclude>
+	    <exclude>**/*.html</exclude>
+	    <exclude>**/sit</exclude>
 	  </excludes>
 	</configuration>
       </plugin>

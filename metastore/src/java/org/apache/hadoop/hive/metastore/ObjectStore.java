@@ -132,6 +132,8 @@ import org.apache.hadoop.hive.metastore.parser.ExpressionTree.LeafNode;
 import org.apache.hadoop.hive.metastore.parser.ExpressionTree.Operator;
 import org.apache.hadoop.hive.metastore.parser.FilterLexer;
 import org.apache.hadoop.hive.metastore.parser.FilterParser;
+import org.apache.hadoop.hive.serde2.typeinfo.PrimitiveTypeInfo;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.hive.metastore.partition.spec.PartitionSpecProxy;
 import org.apache.hadoop.util.StringUtils;
@@ -265,7 +267,7 @@ public class ObjectStore implements RawStore, Configurable {
     isInitialized = pm != null;
     if (isInitialized) {
       expressionProxy = createExpressionProxy(hiveConf);
-      directSql = new MetaStoreDirectSql(pm);
+      directSql = new MetaStoreDirectSql(pm, hiveConf);
     }
     LOG.debug("RawStore: " + this + ", with PersistenceManager: " + pm +
         " created in the thread with id: " + Thread.currentThread().getId());
@@ -521,17 +523,22 @@ public class ObjectStore implements RawStore, Configurable {
 
   @Override
   public Database getDatabase(String name) throws NoSuchObjectException {
+    MetaException ex = null;
+    Database db = null;
     try {
-      return getDatabaseInternal(name);
+      db = getDatabaseInternal(name);
     } catch (MetaException e) {
       // Signature restriction to NSOE, and NSOE being a flat exception prevents us from
       // setting the cause of the NSOE as the MetaException. We should not lose the info
       // we got here, but it's very likely that the MetaException is irrelevant and is
       // actually an NSOE message, so we should log it and throw an NSOE with the msg.
-      LOG.warn("Got a MetaException trying to call getDatabase("
-          +name+"), returning NoSuchObjectException", e);
-      throw new NoSuchObjectException(e.getMessage());
+      ex = e;
     }
+    if (db == null) {
+      LOG.warn("Failed to get database " + name +", returning NoSuchObjectException", ex);
+      throw new NoSuchObjectException(name + (ex == null ? "" : (": " + ex.getMessage())));
+    }
+    return db;
   }
 
   public Database getDatabaseInternal(String name) throws MetaException, NoSuchObjectException {
@@ -1994,7 +2001,7 @@ public class ObjectStore implements RawStore, Configurable {
     return new GetListHelper<Partition>(dbName, tblName, allowSql, allowJdo) {
       @Override
       protected List<Partition> getSqlResult(GetHelper<List<Partition>> ctx) throws MetaException {
-        return directSql.getPartitionsViaSqlFilter(dbName, tblName, partNames, null);
+        return directSql.getPartitionsViaSqlFilter(dbName, tblName, partNames);
       }
       @Override
       protected List<Partition> getJdoResult(
@@ -2047,7 +2054,7 @@ public class ObjectStore implements RawStore, Configurable {
           List<String> partNames = new LinkedList<String>();
           hasUnknownPartitions.set(getPartitionNamesPrunedByExprNoTxn(
               ctx.getTable(), expr, defaultPartitionName, maxParts, partNames));
-          result = directSql.getPartitionsViaSqlFilter(dbName, tblName, partNames, null);
+          result = directSql.getPartitionsViaSqlFilter(dbName, tblName, partNames);
         }
         return result;
       }
@@ -2131,14 +2138,16 @@ public class ObjectStore implements RawStore, Configurable {
     result.addAll(getPartitionNamesNoTxn(
         table.getDbName(), table.getTableName(), maxParts));
     List<String> columnNames = new ArrayList<String>();
+    List<PrimitiveTypeInfo> typeInfos = new ArrayList<PrimitiveTypeInfo>();
     for (FieldSchema fs : table.getPartitionKeys()) {
       columnNames.add(fs.getName());
+      typeInfos.add(TypeInfoFactory.getPrimitiveTypeInfo(fs.getType()));
     }
     if (defaultPartName == null || defaultPartName.isEmpty()) {
       defaultPartName = HiveConf.getVar(getConf(), HiveConf.ConfVars.DEFAULTPARTITIONNAME);
     }
     return expressionProxy.filterPartitionsByExpr(
-        columnNames, expr, defaultPartName, result);
+        columnNames, typeInfos, expr, defaultPartName, result);
   }
 
   /**
@@ -2375,7 +2384,7 @@ public class ObjectStore implements RawStore, Configurable {
     }
 
     private void handleDirectSqlError(Exception ex) throws MetaException, NoSuchObjectException {
-      LOG.error("Direct SQL failed" + (allowJdo ? ", falling back to ORM" : ""), ex);
+      LOG.warn("Direct SQL failed" + (allowJdo ? ", falling back to ORM" : ""), ex);
       if (!allowJdo) {
         if (ex instanceof MetaException) {
           throw (MetaException)ex;

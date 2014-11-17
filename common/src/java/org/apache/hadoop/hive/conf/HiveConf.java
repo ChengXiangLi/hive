@@ -510,6 +510,11 @@ public class HiveConf extends Configuration {
         "work for all queries on your datastore. If all SQL queries fail (for example, your\n" +
         "metastore is backed by MongoDB), you might want to disable this to save the\n" +
         "try-and-fall-back cost."),
+    METASTORE_DIRECT_SQL_PARTITION_BATCH_SIZE("hive.metastore.direct.sql.batch.size", 0,
+        "Batch size for partition and other object retrieval from the underlying DB in direct\n" +
+        "SQL. For some DBs like Oracle and MSSQL, there are hardcoded or perf-based limitations\n" +
+        "that necessitate this. For DBs that can handle the queries, this isn't necessary and\n" +
+        "may impede performance. -1 means no batching, 0 means automatic batching."),
     METASTORE_TRY_DIRECT_SQL_DDL("hive.metastore.try.direct.sql.ddl", true,
         "Same as hive.metastore.try.direct.sql, for read statements within a transaction that\n" +
         "modifies metastore data. Due to non-standard behavior in Postgres, if a direct SQL\n" +
@@ -556,6 +561,8 @@ public class HiveConf extends Configuration {
     METASTORE_PART_INHERIT_TBL_PROPS("hive.metastore.partition.inherit.table.properties", "",
         "List of comma separated keys occurring in table properties which will get inherited to newly created partitions. \n" +
         "* implies all the keys will get inherited."),
+    METASTORE_FILTER_HOOK("hive.metastore.filter.hook", "org.apache.hadoop.hive.metastore.DefaultMetaStoreFilterHookImpl",
+        "Metastore hook class for filtering the metadata read results"),
 
     // Parameters for exporting metadata on table drop (requires the use of the)
     // org.apache.hadoop.hive.ql.parse.MetaDataExportListener preevent listener
@@ -1477,6 +1484,9 @@ public class HiveConf extends Configuration {
         "An example like \"select,drop\" will grant select and drop privilege to the owner\n" +
         "of the table. Note that the default gives the creator of a table no access to the\n" +
         "table (but see HIVE-8067)."),
+    HIVE_AUTHORIZATION_TASK_FACTORY("hive.security.authorization.task.factory",
+        "org.apache.hadoop.hive.ql.parse.authorization.HiveAuthorizationTaskFactoryImpl",
+        "Authorization DDL task factory implementation"),
 
     // if this is not set default value is set during config initialization
     // Default value can't be set in this constructor as it would refer names in other ConfVars
@@ -1529,12 +1539,13 @@ public class HiveConf extends Configuration {
 
     // operation log configuration
     HIVE_SERVER2_LOGGING_OPERATION_ENABLED("hive.server2.logging.operation.enabled", true,
-        "When true, HS2 will save operation logs"),
+        "When true, HS2 will save operation logs and make them available for clients"),
     HIVE_SERVER2_LOGGING_OPERATION_LOG_LOCATION("hive.server2.logging.operation.log.location",
         "${system:java.io.tmpdir}" + File.separator + "${system:user.name}" + File.separator +
             "operation_logs",
         "Top level directory where operation logs are stored if logging functionality is enabled"),
-
+    HIVE_SERVER2_LOGGING_OPERATION_VERBOSE("hive.server2.logging.operation.verbose", false,
+            "When true, HS2 operation logs available for clients will be verbose"),
     // logging configuration
     HIVE_LOG4J_FILE("hive.log4j.file", "",
         "Hive log4j configuration file.\n" +
@@ -1588,6 +1599,9 @@ public class HiveConf extends Configuration {
         "partition columns or non-partition columns while displaying columns in describe\n" +
         "table. From 0.12 onwards, they are displayed separately. This flag will let you\n" +
         "get old behavior, if desired. See, test-case in patch for HIVE-6689."),
+
+    HIVE_SSL_PROTOCOL_BLACKLIST("hive.ssl.protocol.blacklist", "SSLv2,SSLv3",
+        "SSL Versions to disable for all Hive Servers"),
 
      // HiveServer2 specific configs
     HIVE_SERVER2_MAX_START_ATTEMPTS("hive.server2.max.start.attempts", 30L, new RangeValidator(0L, null),
