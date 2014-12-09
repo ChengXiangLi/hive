@@ -20,7 +20,6 @@ package org.apache.hadoop.hive.ql.parse;
 
 import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVESTATSDBCLASS;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
@@ -158,7 +157,6 @@ import org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDescUtils;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
-import org.apache.hadoop.hive.ql.plan.ExprNodeNullDesc;
 import org.apache.hadoop.hive.ql.plan.ExtractDesc;
 import org.apache.hadoop.hive.ql.plan.FileSinkDesc;
 import org.apache.hadoop.hive.ql.plan.FilterDesc;
@@ -217,6 +215,7 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.mapred.InputFormat;
+import org.apache.hadoop.mapred.OutputFormat;
 import org.eigenbase.rel.AggregateCall;
 import org.eigenbase.rel.AggregateRelBase;
 import org.eigenbase.rel.Aggregation;
@@ -401,8 +400,9 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     opToPartList = new HashMap<TableScanOperator, PrunedPartitionList>();
     opToSamplePruner = new HashMap<TableScanOperator, sampleDesc>();
     nameToSplitSample = new HashMap<String, SplitSample>();
-    topOps = new HashMap<String, Operator<? extends OperatorDesc>>();
-    topSelOps = new HashMap<String, Operator<? extends OperatorDesc>>();
+    // Must be deterministic order maps - see HIVE-8707
+    topOps = new LinkedHashMap<String, Operator<? extends OperatorDesc>>();
+    topSelOps = new LinkedHashMap<String, Operator<? extends OperatorDesc>>();
     loadTableWork = new ArrayList<LoadTableDesc>();
     loadFileWork = new ArrayList<LoadFileDesc>();
     opParseCtx = new LinkedHashMap<Operator<? extends OperatorDesc>, OpParseContext>();
@@ -1736,7 +1736,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           }
 
           Class<?> outputFormatClass = ts.tableHandle.getOutputFormatClass();
-          if (!HiveOutputFormat.class.isAssignableFrom(outputFormatClass)) {
+          if (!ts.tableHandle.isNonNative() &&
+              !HiveOutputFormat.class.isAssignableFrom(outputFormatClass)) {
             throw new SemanticException(ErrorMsg.INVALID_OUTPUT_FORMAT_TYPE
                 .getMsg(ast, "The class is " + outputFormatClass.toString()));
           }
@@ -3702,11 +3703,6 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     ArrayList<String> columnNames = new ArrayList<String>();
     Map<String, ExprNodeDesc> colExprMap = new HashMap<String, ExprNodeDesc>();
     for (int i = 0; i < col_list.size(); i++) {
-      // Replace NULL with CAST(NULL AS STRING)
-      if (col_list.get(i) instanceof ExprNodeNullDesc) {
-        col_list.set(i, new ExprNodeConstantDesc(
-            TypeInfoFactory.stringTypeInfo, null));
-      }
       String outputCol = getColumnInternalName(i);
       colExprMap.put(outputCol, col_list.get(i));
       columnNames.add(outputCol);
@@ -6502,6 +6498,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     conf.setIntVar(ConfVars.HIVEOPTREDUCEDEDUPLICATIONMINREDUCER, 1);
     conf.setBoolVar(ConfVars.HIVE_HADOOP_SUPPORTS_SUBDIRECTORIES, true);
     conf.set(AcidUtils.CONF_ACID_KEY, "true");
+    conf.setBoolVar(ConfVars.HIVEOPTSORTDYNAMICPARTITION, false);
 
     if (table.getNumBuckets() < 1) {
       throw new SemanticException(ErrorMsg.ACID_OP_ON_NONACID_TABLE, table.getTableName());
@@ -8293,7 +8290,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       }
     }
 
-    if ( targetCondn == null ) {
+    if ( targetCondn == null || (nodeCondn.size() != targetCondn.size())) {
       return new ObjectPair(-1, null);
     }
 
@@ -9646,7 +9643,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       throws SemanticException {
 
     // First generate all the opInfos for the elements in the from clause
-    Map<String, Operator> aliasToOpInfo = new HashMap<String, Operator>();
+    // Must be deterministic order map - see HIVE-8707
+    Map<String, Operator> aliasToOpInfo = new LinkedHashMap<String, Operator>();
 
     // Recurse over the subqueries to fill the subquery part of the plan
     for (String alias : qb.getSubqAliases()) {
@@ -12455,7 +12453,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     return tableIsTransactional != null && tableIsTransactional.equalsIgnoreCase("true");
   }
 
-  private boolean isAcidOutputFormat(Class<? extends HiveOutputFormat> of) {
+  private boolean isAcidOutputFormat(Class<? extends OutputFormat> of) {
     Class<?>[] interfaces = of.getInterfaces();
     for (Class<?> iface : interfaces) {
       if (iface.equals(AcidOutputFormat.class)) {
@@ -12473,7 +12471,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
             AcidUtils.Operation.INSERT);
   }
 
-  private AcidUtils.Operation getAcidType(Class<? extends HiveOutputFormat> of) {
+  private AcidUtils.Operation getAcidType(Class<? extends OutputFormat> of) {
     if (SessionState.get() == null || !SessionState.get().getTxnMgr().supportsAcid()) {
       return AcidUtils.Operation.NOT_ACID;
     } else if (isAcidOutputFormat(of)) {
@@ -14145,7 +14143,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
      *
      * @throws SemanticException
      */
-    private RelNode genSelectLogicalPlan(QB qb, RelNode srcRel) throws SemanticException {
+    private RelNode genSelectLogicalPlan(
+        QB qb, RelNode srcRel, RelNode starSrcRel) throws SemanticException {
       // 0. Generate a Select Node for Windowing
       //    Exclude the newly-generated select columns from */etc. resolution.
       HashSet<ColumnInfo> excludedColumns = new HashSet<ColumnInfo>();
@@ -14165,7 +14164,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       RowResolver out_rwsch = new RowResolver();
       ASTNode trfm = null;
       Integer pos = Integer.valueOf(0);
-      RowResolver inputRR = this.relToHiveRR.get(srcRel);
+      // TODO: will this also fix windowing? try
+      RowResolver inputRR = this.relToHiveRR.get(srcRel), starRR = inputRR;
+      if (starSrcRel != null) {
+        starRR = this.relToHiveRR.get(starSrcRel);
+      }
 
       // 3. Query Hints
       // TODO: Handle Query Hints; currently we ignore them
@@ -14210,7 +14213,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       ASTNode exprList = selExprList;
       int startPosn = posn;
       int wndProjPos = 0;
-      List<String> tabAliasesForAllProjs = getTabAliases(inputRR);
+      List<String> tabAliasesForAllProjs = getTabAliases(starRR);
       for (int i = startPosn; i < exprList.getChildCount(); ++i) {
 
         // 6.1 child can be EXPR AS ALIAS, or EXPR.
@@ -14240,7 +14243,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         if (expr.getType() == HiveParser.TOK_ALLCOLREF) {
           pos = genColListRegex(".*",
               expr.getChildCount() == 0 ? null : getUnescapedName((ASTNode) expr.getChild(0))
-                  .toLowerCase(), expr, col_list, excludedColumns, inputRR, null, pos,
+                  .toLowerCase(), expr, col_list, excludedColumns, inputRR, starRR, pos,
                   out_rwsch, tabAliasesForAllProjs, true);
           selectStar = true;
         } else if (expr.getType() == HiveParser.TOK_TABLE_OR_COL && !hasAsClause
@@ -14250,7 +14253,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           // This can only happen without AS clause
           // We don't allow this for ExprResolver - the Group By case
           pos = genColListRegex(unescapeIdentifier(expr.getChild(0).getText()), null, expr,
-              col_list, excludedColumns, inputRR, null, pos, out_rwsch, tabAliasesForAllProjs,
+              col_list, excludedColumns, inputRR, starRR, pos, out_rwsch, tabAliasesForAllProjs,
               true);
         } else if (expr.getType() == HiveParser.DOT
             && expr.getChild(0).getType() == HiveParser.TOK_TABLE_OR_COL
@@ -14262,9 +14265,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           // We don't allow this for ExprResolver - the Group By case
           pos = genColListRegex(unescapeIdentifier(expr.getChild(1).getText()),
               unescapeIdentifier(expr.getChild(0).getChild(0).getText().toLowerCase()), expr,
-              col_list, excludedColumns, inputRR, null, pos, out_rwsch, tabAliasesForAllProjs,
+              col_list, excludedColumns, inputRR, starRR, pos, out_rwsch, tabAliasesForAllProjs,
               true);
-        } else if (expr.toStringTree().contains("TOK_FUNCTIONDI") && !(srcRel instanceof HiveAggregateRel)) {
+        } else if (expr.toStringTree().contains("TOK_FUNCTIONDI")
+            && !(srcRel instanceof HiveAggregateRel)) {
           // Likely a malformed query eg, select hash(distinct c1) from t1;
           throw new OptiqSemanticException("Distinct without an aggreggation.");
         } else {
@@ -14394,6 +14398,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       // 2. Build Rel for where Clause
       filterRel = genFilterLogicalPlan(qb, srcRel, aliasToRel, false);
       srcRel = (filterRel == null) ? srcRel : filterRel;
+      RelNode starSrcRel = srcRel;
 
       // 3. Build Rel for GB Clause
       gbRel = genGBLogicalPlan(qb, srcRel);
@@ -14404,7 +14409,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       srcRel = (gbHavingRel == null) ? srcRel : gbHavingRel;
 
       // 5. Build Rel for Select Clause
-      selectRel = genSelectLogicalPlan(qb, srcRel);
+      selectRel = genSelectLogicalPlan(qb, srcRel, starSrcRel);
       srcRel = (selectRel == null) ? srcRel : selectRel;
 
       // 6. Build Rel for OB Clause

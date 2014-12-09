@@ -46,10 +46,14 @@ POSTHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/T3.txt' INTO TABLE T3
 POSTHOOK: type: LOAD
 #### A masked pattern was here ####
 POSTHOOK: Output: default@t3
-PREHOOK: query: EXPLAIN FROM T1 a JOIN src c ON c.key+1=a.key
+PREHOOK: query: -- SORT_QUERY_RESULTS
+
+EXPLAIN FROM T1 a JOIN src c ON c.key+1=a.key
 SELECT a.key, a.val, c.key
 PREHOOK: type: QUERY
-POSTHOOK: query: EXPLAIN FROM T1 a JOIN src c ON c.key+1=a.key
+POSTHOOK: query: -- SORT_QUERY_RESULTS
+
+EXPLAIN FROM T1 a JOIN src c ON c.key+1=a.key
 SELECT a.key, a.val, c.key
 POSTHOOK: type: QUERY
 STAGE DEPENDENCIES:
@@ -60,18 +64,6 @@ STAGE PLANS:
   Stage: Stage-1
     Map Reduce
       Map Operator Tree:
-          TableScan
-            alias: c
-            Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
-            Filter Operator
-              predicate: (key + 1) is not null (type: boolean)
-              Statistics: Num rows: 250 Data size: 2656 Basic stats: COMPLETE Column stats: NONE
-              Reduce Output Operator
-                key expressions: (key + 1) (type: double)
-                sort order: +
-                Map-reduce partition columns: (key + 1) (type: double)
-                Statistics: Num rows: 250 Data size: 2656 Basic stats: COMPLETE Column stats: NONE
-                value expressions: key (type: string)
           TableScan
             alias: a
             Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
@@ -84,6 +76,18 @@ STAGE PLANS:
                 Map-reduce partition columns: UDFToDouble(key) (type: double)
                 Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
                 value expressions: key (type: string), val (type: string)
+          TableScan
+            alias: c
+            Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
+            Filter Operator
+              predicate: (key + 1) is not null (type: boolean)
+              Statistics: Num rows: 250 Data size: 2656 Basic stats: COMPLETE Column stats: NONE
+              Reduce Output Operator
+                key expressions: (key + 1) (type: double)
+                sort order: +
+                Map-reduce partition columns: (key + 1) (type: double)
+                Statistics: Num rows: 250 Data size: 2656 Basic stats: COMPLETE Column stats: NONE
+                value expressions: key (type: string)
       Reduce Operator Tree:
         Join Operator
           condition map:
@@ -126,18 +130,6 @@ STAGE PLANS:
     Map Reduce
       Map Operator Tree:
           TableScan
-            alias: c
-            Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
-            Filter Operator
-              predicate: (key + 1) is not null (type: boolean)
-              Statistics: Num rows: 250 Data size: 2656 Basic stats: COMPLETE Column stats: NONE
-              Reduce Output Operator
-                key expressions: (key + 1) (type: double)
-                sort order: +
-                Map-reduce partition columns: (key + 1) (type: double)
-                Statistics: Num rows: 250 Data size: 2656 Basic stats: COMPLETE Column stats: NONE
-                value expressions: key (type: string)
-          TableScan
             alias: a
             Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
             Filter Operator
@@ -149,6 +141,18 @@ STAGE PLANS:
                 Map-reduce partition columns: UDFToDouble(key) (type: double)
                 Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
                 value expressions: key (type: string), val (type: string)
+          TableScan
+            alias: c
+            Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
+            Filter Operator
+              predicate: (key + 1) is not null (type: boolean)
+              Statistics: Num rows: 250 Data size: 2656 Basic stats: COMPLETE Column stats: NONE
+              Reduce Output Operator
+                key expressions: (key + 1) (type: double)
+                sort order: +
+                Map-reduce partition columns: (key + 1) (type: double)
+                Statistics: Num rows: 250 Data size: 2656 Basic stats: COMPLETE Column stats: NONE
+                value expressions: key (type: string)
       Reduce Operator Tree:
         Join Operator
           condition map:
@@ -228,14 +232,6 @@ STAGE PLANS:
     Map Reduce
       Map Operator Tree:
           TableScan
-            alias: b
-            Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
-            Reduce Output Operator
-              key expressions: key (type: string)
-              sort order: +
-              Map-reduce partition columns: key (type: string)
-              Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
-          TableScan
             alias: a
             Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
             Reduce Output Operator
@@ -244,6 +240,14 @@ STAGE PLANS:
               Map-reduce partition columns: key (type: string)
               Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
               value expressions: val (type: string)
+          TableScan
+            alias: b
+            Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
+            Reduce Output Operator
+              key expressions: key (type: string)
+              sort order: +
+              Map-reduce partition columns: key (type: string)
+              Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
       Reduce Operator Tree:
         Join Operator
           condition map:
@@ -325,14 +329,6 @@ STAGE PLANS:
     Map Reduce
       Map Operator Tree:
           TableScan
-            alias: b
-            Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
-            Reduce Output Operator
-              key expressions: key (type: string)
-              sort order: +
-              Map-reduce partition columns: key (type: string)
-              Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
-          TableScan
             alias: a
             Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
             Reduce Output Operator
@@ -341,6 +337,14 @@ STAGE PLANS:
               Map-reduce partition columns: key (type: string)
               Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
               value expressions: val (type: string)
+          TableScan
+            alias: b
+            Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
+            Reduce Output Operator
+              key expressions: key (type: string)
+              sort order: +
+              Map-reduce partition columns: key (type: string)
+              Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
       Reduce Operator Tree:
         Join Operator
           condition map:
@@ -421,9 +425,9 @@ POSTHOOK: Input: default@t2
 POSTHOOK: Input: default@t3
 #### A masked pattern was here ####
 2	2	12	12
+7	NULL	17	17
 NULL	NULL	NULL	14
 NULL	NULL	NULL	16
-7	NULL	17	17
 PREHOOK: query: FROM T1 a
   LEFT OUTER JOIN T2 b ON (b.key=a.key)
   RIGHT OUTER JOIN T3 c ON (c.val = a.val)
@@ -443,9 +447,9 @@ POSTHOOK: Input: default@t2
 POSTHOOK: Input: default@t3
 #### A masked pattern was here ####
 2	2	12	12
+7	NULL	17	17
 NULL	NULL	NULL	14
 NULL	NULL	NULL	16
-7	NULL	17	17
 PREHOOK: query: EXPLAIN FROM UNIQUEJOIN
   PRESERVE T1 a (a.key, a.val),
   PRESERVE T2 b (b.key, b.val),
@@ -467,6 +471,14 @@ STAGE PLANS:
     Map Reduce
       Map Operator Tree:
           TableScan
+            alias: a
+            Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
+            Reduce Output Operator
+              key expressions: key (type: string), val (type: string)
+              sort order: ++
+              Map-reduce partition columns: key (type: string), val (type: string)
+              Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
+          TableScan
             alias: b
             Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
             Reduce Output Operator
@@ -482,14 +494,6 @@ STAGE PLANS:
               sort order: ++
               Map-reduce partition columns: key (type: string), val (type: string)
               Statistics: Num rows: 0 Data size: 20 Basic stats: PARTIAL Column stats: NONE
-          TableScan
-            alias: a
-            Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
-            Reduce Output Operator
-              key expressions: key (type: string), val (type: string)
-              sort order: ++
-              Map-reduce partition columns: key (type: string), val (type: string)
-              Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
       Reduce Operator Tree:
         Join Operator
           condition map:
@@ -541,6 +545,14 @@ STAGE PLANS:
     Map Reduce
       Map Operator Tree:
           TableScan
+            alias: a
+            Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
+            Reduce Output Operator
+              key expressions: key (type: string), val (type: string)
+              sort order: ++
+              Map-reduce partition columns: key (type: string), val (type: string)
+              Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
+          TableScan
             alias: b
             Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
             Reduce Output Operator
@@ -556,14 +568,6 @@ STAGE PLANS:
               sort order: ++
               Map-reduce partition columns: key (type: string), val (type: string)
               Statistics: Num rows: 0 Data size: 20 Basic stats: PARTIAL Column stats: NONE
-          TableScan
-            alias: a
-            Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
-            Reduce Output Operator
-              key expressions: key (type: string), val (type: string)
-              sort order: ++
-              Map-reduce partition columns: key (type: string), val (type: string)
-              Statistics: Num rows: 0 Data size: 30 Basic stats: PARTIAL Column stats: NONE
       Reduce Operator Tree:
         Join Operator
           condition map:
@@ -616,15 +620,15 @@ POSTHOOK: Input: default@t3
 #### A masked pattern was here ####
 1	NULL	NULL
 2	NULL	2
-NULL	2	NULL
 3	3	NULL
-NULL	4	4
-NULL	5	NULL
-NULL	NULL	6
 7	NULL	7
 8	8	NULL
 8	8	NULL
 8	NULL	NULL
+NULL	2	NULL
+NULL	4	4
+NULL	5	NULL
+NULL	NULL	6
 PREHOOK: query: FROM UNIQUEJOIN
   PRESERVE T1 a (a.key, a.val),
   PRESERVE T2 b (b.key, b.val),
@@ -647,12 +651,12 @@ POSTHOOK: Input: default@t3
 #### A masked pattern was here ####
 1	NULL	NULL
 2	NULL	2
-NULL	2	NULL
 3	3	NULL
-NULL	4	4
-NULL	5	NULL
-NULL	NULL	6
 7	NULL	7
 8	8	NULL
 8	8	NULL
 8	NULL	NULL
+NULL	2	NULL
+NULL	4	4
+NULL	5	NULL
+NULL	NULL	6

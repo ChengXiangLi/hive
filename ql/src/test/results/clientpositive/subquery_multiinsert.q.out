@@ -1,11 +1,15 @@
-PREHOOK: query: CREATE TABLE src_4(
+PREHOOK: query: -- SORT_QUERY_RESULTS
+
+CREATE TABLE src_4(
   key STRING, 
   value STRING
 )
 PREHOOK: type: CREATETABLE
 PREHOOK: Output: database:default
 PREHOOK: Output: default@src_4
-POSTHOOK: query: CREATE TABLE src_4(
+POSTHOOK: query: -- SORT_QUERY_RESULTS
+
+CREATE TABLE src_4(
   key STRING, 
   value STRING
 )
@@ -272,18 +276,14 @@ STAGE PLANS:
             1 
           outputColumnNames: _col0, _col1
           Statistics: Num rows: 550 Data size: 5843 Basic stats: COMPLETE Column stats: NONE
-          Select Operator
-            expressions: _col0 (type: string), _col1 (type: string)
-            outputColumnNames: _col0, _col1
+          File Output Operator
+            compressed: false
             Statistics: Num rows: 550 Data size: 5843 Basic stats: COMPLETE Column stats: NONE
-            File Output Operator
-              compressed: false
-              Statistics: Num rows: 550 Data size: 5843 Basic stats: COMPLETE Column stats: NONE
-              table:
-                  input format: org.apache.hadoop.mapred.TextInputFormat
-                  output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
-                  serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
-                  name: default.src_4
+            table:
+                input format: org.apache.hadoop.mapred.TextInputFormat
+                output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+                serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+                name: default.src_4
 
   Stage: Stage-0
     Move Operator
@@ -677,18 +677,14 @@ STAGE PLANS:
                 1 _col0 (type: string), _col1 (type: string)
               outputColumnNames: _col0, _col1
               Statistics: Num rows: 550 Data size: 5843 Basic stats: COMPLETE Column stats: NONE
-              Select Operator
-                expressions: _col0 (type: string), _col1 (type: string)
-                outputColumnNames: _col0, _col1
+              File Output Operator
+                compressed: false
                 Statistics: Num rows: 550 Data size: 5843 Basic stats: COMPLETE Column stats: NONE
-                File Output Operator
-                  compressed: false
-                  Statistics: Num rows: 550 Data size: 5843 Basic stats: COMPLETE Column stats: NONE
-                  table:
-                      input format: org.apache.hadoop.mapred.TextInputFormat
-                      output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
-                      serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
-                      name: default.src_4
+                table:
+                    input format: org.apache.hadoop.mapred.TextInputFormat
+                    output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+                    serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+                    name: default.src_4
       Local Work:
         Map Reduce Local Work
 
@@ -881,17 +877,17 @@ POSTHOOK: query: select * from src_4
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@src_4
 #### A masked pattern was here ####
-98	val_98
+90	val_90
+90	val_90
+90	val_90
 92	val_92
+95	val_95
+95	val_95
 96	val_96
-95	val_95
+97	val_97
+97	val_97
 98	val_98
-90	val_90
-95	val_95
-90	val_90
-97	val_97
-90	val_90
-97	val_97
+98	val_98
 PREHOOK: query: select * from src_5
 PREHOOK: type: QUERY
 PREHOOK: Input: default@src_5

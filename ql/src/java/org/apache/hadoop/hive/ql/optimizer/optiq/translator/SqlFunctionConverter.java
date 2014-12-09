@@ -32,6 +32,7 @@ import org.apache.hadoop.hive.ql.optimizer.optiq.OptiqSemanticException;
 import org.apache.hadoop.hive.ql.parse.ASTNode;
 import org.apache.hadoop.hive.ql.parse.HiveParser;
 import org.apache.hadoop.hive.ql.parse.ParseDriver;
+import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.udf.SettableUDF;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFBridge;
@@ -111,13 +112,25 @@ public class SqlFunctionConverter {
         name = FunctionRegistry.UNARY_MINUS_FUNC_NAME;
       }
     }
-    FunctionInfo hFn = name != null ? FunctionRegistry.getFunctionInfo(name) : null;
-    if (hFn == null)
-      hFn = handleExplicitCast(op, dt);
+    FunctionInfo hFn;
+    try {
+      hFn = name != null ? FunctionRegistry.getFunctionInfo(name) : null;
+    } catch (SemanticException e) {
+      LOG.warn("Failed to load udf " + name, e);
+      hFn = null;
+    }
+    if (hFn == null) {
+      try {
+        hFn = handleExplicitCast(op, dt);
+      } catch (SemanticException e) {
+        LOG.warn("Failed to load udf " + name, e);
+        hFn = null;
+      }
+    }
     return hFn == null ? null : hFn.getGenericUDF();
   }
 
-  private static FunctionInfo handleExplicitCast(SqlOperator op, RelDataType dt) {
+  private static FunctionInfo handleExplicitCast(SqlOperator op, RelDataType dt) throws SemanticException {
     FunctionInfo castUDF = null;
 
     if (op.kind == SqlKind.CAST) {
@@ -146,8 +159,8 @@ public class SqlFunctionConverter {
         castUDF = FunctionRegistry.getFunctionInfo("double");
       } else if (castType.equals(TypeInfoFactory.timestampTypeInfo)) {
         castUDF = FunctionRegistry.getFunctionInfo("timestamp");
-      } else if (castType.equals(TypeInfoFactory.dateTypeInfo)) {
-        castUDF = FunctionRegistry.getFunctionInfo("datetime");
+      }  else if (castType.equals(TypeInfoFactory.dateTypeInfo)) {
+        castUDF = FunctionRegistry.getFunctionInfo("date");
       } else if (castType instanceof DecimalTypeInfo) {
         castUDF = handleCastForParameterizedType(castType,
             FunctionRegistry.getFunctionInfo("decimal"));
@@ -283,7 +296,13 @@ public class SqlFunctionConverter {
 
     private void registerFunction(String name, SqlOperator optiqFn, HiveToken hiveToken) {
       reverseOperatorMap.put(optiqFn, name);
-      FunctionInfo hFn = FunctionRegistry.getFunctionInfo(name);
+      FunctionInfo hFn;
+      try {
+        hFn = FunctionRegistry.getFunctionInfo(name);
+      } catch (SemanticException e) {
+        LOG.warn("Failed to load udf " + name, e);
+        hFn = null;
+      }
       if (hFn != null) {
         String hFnName = getName(hFn.getGenericUDF());
         hiveToOptiq.put(hFnName, optiqFn);
