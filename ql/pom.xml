@@ -283,11 +283,6 @@
       <version>${jline.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.fusesource.jansi</groupId>
-      <artifactId>jansi</artifactId>
-      <version>${jansi.version}</version>
-    </dependency>
-    <dependency>
       <groupId>org.apache.tez</groupId>
       <artifactId>tez-api</artifactId>
       <version>${tez.version}</version>
@@ -440,6 +435,12 @@
           <artifactId>hadoop-core</artifactId>
           <version>${hadoop-20S.version}</version>
          <optional>true</optional>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-tools</artifactId>
+          <version>${hadoop-20S.version}</version>
+          <optional>true</optional>
         </dependency>
       </dependencies>
     </profile>
@@ -637,12 +638,10 @@
                   <include>org.json:json</include>
                   <include>org.apache.avro:avro</include>
                   <include>org.apache.avro:avro-mapred</include>
-                  <include>org.apache.hive.shims:hive-shims-0.20</include>
                   <include>org.apache.hive.shims:hive-shims-0.20S</include>
                   <include>org.apache.hive.shims:hive-shims-0.23</include>
                   <include>org.apache.hive.shims:hive-shims-0.23</include>
                   <include>org.apache.hive.shims:hive-shims-common</include>
-                  <include>org.apache.hive.shims:hive-shims-common-secure</include>
                   <include>com.googlecode.javaewah:JavaEWAH</include>
                   <include>javolution:javolution</include>
                   <include>com.google.protobuf:protobuf-java</include>
