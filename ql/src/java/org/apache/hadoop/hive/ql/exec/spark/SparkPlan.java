@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.ql.io.HiveKey;
 import org.apache.hadoop.hive.ql.log.PerfLogger;
 import org.apache.hadoop.io.BytesWritable;
@@ -37,12 +39,12 @@ import com.google.common.base.Preconditions;
 public class SparkPlan {
   private static final String CLASS_NAME = SparkPlan.class.getName();
   private final PerfLogger perfLogger = PerfLogger.getPerfLogger();
+  private static final Log LOG = LogFactory.getLog(SparkPlan.class);
 
   private final Set<SparkTran> rootTrans = new HashSet<SparkTran>();
   private final Set<SparkTran> leafTrans = new HashSet<SparkTran>();
   private final Map<SparkTran, List<SparkTran>> transGraph = new HashMap<SparkTran, List<SparkTran>>();
   private final Map<SparkTran, List<SparkTran>> invertedTransGraph = new HashMap<SparkTran, List<SparkTran>>();
-  private final Set<Integer> cachedRDDIds = new HashSet<Integer>();
 
   @SuppressWarnings("unchecked")
   public JavaPairRDD<HiveKey, BytesWritable> generateGraph() {
@@ -83,20 +85,13 @@ public class SparkPlan {
     }
 
     perfLogger.PerfLogEnd(CLASS_NAME, PerfLogger.SPARK_BUILD_RDD_GRAPH);
+    LOG.info("print generated spark rdd graph:\n" + SparkUtilities.rddGraphToString(finalRDD));
     return finalRDD;
   }
 
   public void addTran(SparkTran tran) {
     rootTrans.add(tran);
     leafTrans.add(tran);
-  }
-
-  public void addCachedRDDId(int rddId) {
-    cachedRDDIds.add(rddId);
-  }
-
-  public Set<Integer> getCachedRDDIds() {
-    return cachedRDDIds;
   }
 
   /**

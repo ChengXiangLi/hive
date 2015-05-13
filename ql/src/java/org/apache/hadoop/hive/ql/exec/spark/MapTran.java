@@ -22,11 +22,19 @@ import org.apache.hadoop.hive.ql.io.HiveKey;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.spark.api.java.JavaPairRDD;
 
-public class MapTran implements SparkTran<BytesWritable, BytesWritable, HiveKey, BytesWritable> {
+public class MapTran extends CacheTran<BytesWritable, BytesWritable, HiveKey, BytesWritable> {
   private HiveMapFunction mapFunc;
 
+  public MapTran() {
+    this(false);
+  }
+
+  public MapTran(boolean cache) {
+    super(cache);
+  }
+
   @Override
-  public JavaPairRDD<HiveKey, BytesWritable> transform(
+  public JavaPairRDD<HiveKey, BytesWritable> doTransform(
       JavaPairRDD<BytesWritable, BytesWritable> input) {
     return input.mapPartitionsToPair(mapFunc);
   }
