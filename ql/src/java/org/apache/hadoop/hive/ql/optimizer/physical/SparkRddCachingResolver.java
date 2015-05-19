@@ -162,6 +162,17 @@ public class SparkRddCachingResolver implements PhysicalPlanResolver {
                 PartitionDesc pd = mapWork.getPathToPartitionInfo().get(onefile);
                 String partDeserializer = pd.getDeserializerClassName();
                 deserSet.add(partDeserializer);
+
+                // HadoopRDD reuse the <Key, Value> pair read from storage, which mean Hive need to clone the pair
+                // for caching, the storage output like OrcStruct does not support any kind of deep clone yet, so
+                // we can't cache any RDD which read data from ORC file.
+                Class<? extends InputFormat> inputFileFormatClass = pd.getTableDesc().getInputFileFormatClass();
+                if (inputFileFormatClass.equals(ParquetInputFormat.class) ||
+                  inputFileFormatClass.equals(OrcInputFormat.class) ||
+                  inputFileFormatClass.equals(OrcNewInputFormat.class)) {
+                  add = false;
+                  break;
+                }
               }
               if (deserSet.size() > 1) {
                 add = false;
@@ -170,14 +181,15 @@ public class SparkRddCachingResolver implements PhysicalPlanResolver {
               for (Operator operator : mapWork.getWorks()) {
                 if (operator instanceof TableScanOperator) {
                   TableScanOperator tsop = (TableScanOperator) operator;
+                  TableScanDesc tableScanDesc = tsop.getConf();
 
                   // The VirtualColumn information would be lost in cached RDD, we should not enable RDD caching
                   // while query try to scan table with virtual columns.
-                  if(tsop.getConf().hasVirtualCols()) {
+                  if(tableScanDesc.hasVirtualCols()) {
                     add = false;
                     break;
                   }
-                  Table table = tsop.getConf().getTableMetadata();
+                  Table table = tableScanDesc.getTableMetadata();
                   if (table == null) {
                     add = false;
                     break;
@@ -321,7 +333,7 @@ public class SparkRddCachingResolver implements PhysicalPlanResolver {
       // For columnar storage format, Hive may push projection and filter down to InputFormat level,
       // so Hive may scan the same table twice, but with different output data from columnar InputFormat.
       // we should not cache RDD in this case.
-      // TODO is there any more storage format which may push projection and filter down to InputFormat level?
+      // TODO is there any more storage format which may push projection and filter down to InputFormat level? 1. RCFile, HBase 2. check when the PPD is closed.
       Class<? extends InputFormat> inputFileFormatClass = tableDesc1.getInputFileFormatClass();
       if (inputFileFormatClass.equals(ParquetInputFormat.class) ||
         inputFileFormatClass.equals(OrcInputFormat.class) ||
