@@ -21,4 +21,4 @@ env:
     global: 
         # Global variable to avoid hanging travis builds when downloading cache archives.
         - MALLOC_ARENA_MAX=2
-
+script: ./tools/run-test.sh
