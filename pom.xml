@@ -174,6 +174,10 @@
   <repositories>
    <!-- This needs to be removed before checking in-->
     <repository>
+      <id>conjars.org</id>
+      <url>http://conjars.org/repo</url>
+    </repository>
+    <repository>
       <id>datanucleus</id>
       <name>datanucleus maven repository</name>
       <url>http://www.datanucleus.org/downloads/maven2</url>

@@ -66,6 +66,7 @@ import org.apache.hadoop.hive.ql.optimizer.physical.SparkCrossProductCheck;
 import org.apache.hadoop.hive.ql.optimizer.physical.SparkMapJoinResolver;
 import org.apache.hadoop.hive.ql.optimizer.physical.StageIDsRearranger;
 import org.apache.hadoop.hive.ql.optimizer.physical.Vectorizer;
+import org.apache.hadoop.hive.ql.optimizer.spark.CombineEquivalentWorkResolver;
 import org.apache.hadoop.hive.ql.optimizer.spark.SetSparkReducerParallelism;
 import org.apache.hadoop.hive.ql.optimizer.spark.SparkJoinHintOptimizer;
 import org.apache.hadoop.hive.ql.optimizer.spark.SparkJoinOptimizer;
@@ -335,6 +336,10 @@ public class SparkCompiler extends TaskCompiler {
       (new StageIDsRearranger()).resolve(physicalCtx);
     } else {
       LOG.debug("Skipping stage id rearranger");
+    }
+
+    if (conf.getIntVar(HiveConf.ConfVars.SPARK_RPC_MAX_THREADS) == 8) {
+     new CombineEquivalentWorkResolver().resolve(physicalCtx);
     }
 
     PERF_LOGGER.PerfLogEnd(CLASS_NAME, PerfLogger.SPARK_OPTIMIZE_TASK_TREE);

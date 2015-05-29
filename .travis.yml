@@ -1,0 +1,24 @@
+# send to container based infrastructure: http://docs.travis-ci.com/user/workers/container-based-infrastructure/
+sudo: false
+
+cache:
+  directories:
+  - $HOME/.m2
+
+install: true
+
+language: java
+
+#See https://issues.apache.org/jira/browse/FLINK-1072
+matrix:
+  include:
+    - jdk: "openjdk7"
+
+git:
+  depth: 100
+
+env:
+    global: 
+        # Global variable to avoid hanging travis builds when downloading cache archives.
+        - MALLOC_ARENA_MAX=2
+
