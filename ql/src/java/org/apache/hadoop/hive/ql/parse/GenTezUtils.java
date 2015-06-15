@@ -36,6 +36,7 @@ import org.apache.hadoop.hive.ql.exec.FetchTask;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
 import org.apache.hadoop.hive.ql.exec.HashTableDummyOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
+import org.apache.hadoop.hive.ql.exec.OperatorUtils;
 import org.apache.hadoop.hive.ql.exec.ReduceSinkOperator;
 import org.apache.hadoop.hive.ql.exec.TableScanOperator;
 import org.apache.hadoop.hive.ql.exec.UnionOperator;
@@ -87,9 +88,10 @@ public class GenTezUtils {
     sequenceNumber = 0;
   }
 
-  public UnionWork createUnionWork(GenTezProcContext context, Operator<?> operator, TezWork tezWork) {
+  public UnionWork createUnionWork(GenTezProcContext context, Operator<?> root, Operator<?> leaf, TezWork tezWork) {
     UnionWork unionWork = new UnionWork("Union "+ (++sequenceNumber));
-    context.unionWorkMap.put(operator, unionWork);
+    context.rootUnionWorkMap.put(root, unionWork);
+    context.unionWorkMap.put(leaf, unionWork);
     tezWork.add(unionWork);
     return unionWork;
   }
@@ -237,6 +239,11 @@ public class GenTezUtils {
 
     Iterator<Operator<?>> it = newRoots.iterator();
     for (Operator<?> orig: roots) {
+      Set<FileSinkOperator> fsOpSet = OperatorUtils.findOperators(orig, FileSinkOperator.class);
+      for (FileSinkOperator fsOp : fsOpSet) {
+        context.fileSinkSet.remove(fsOp);
+      }
+
       Operator<?> newRoot = it.next();
 
       replacementMap.put(orig, newRoot);
@@ -300,6 +307,8 @@ public class GenTezUtils {
         linked.add(desc);
 
         desc.setDirName(new Path(path, ""+linked.size()));
+        desc.setLinkedFileSink(true);
+        desc.setParentDir(path);
         desc.setLinkedFileSinkDesc(linked);
       }
 
@@ -459,5 +468,21 @@ public class GenTezUtils {
     for (Operator<?> p : parents) {
       findRoots(p, ops);
     }
+  }
+
+  /**
+   * Remove an operator branch. When we see a fork, we know it's time to do the removal.
+   * @param event the leaf node of which branch to be removed
+   */
+  public void removeBranch(AppMasterEventOperator event) {
+    Operator<?> child = event;
+    Operator<?> curr = event;
+
+    while (curr.getChildOperators().size() <= 1) {
+      child = curr;
+      curr = curr.getParentOperators().get(0);
+    }
+
+    curr.removeChild(child);
   }
 }
