@@ -40,24 +40,10 @@ STAGE PLANS:
     Spark
       Edges:
         Reducer 2 <- Map 4 (GROUP PARTITION-LEVEL SORT, 2)
-        Reducer 3 <- Map 5 (GROUP PARTITION-LEVEL SORT, 2)
+        Reducer 3 <- Map 4 (GROUP PARTITION-LEVEL SORT, 2)
 #### A masked pattern was here ####
       Vertices:
         Map 4 
-            Map Operator Tree:
-                TableScan
-                  alias: src
-                  Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
-                  Select Operator
-                    expressions: key (type: string), value (type: string)
-                    outputColumnNames: key, value
-                    Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
-                    Reduce Output Operator
-                      key expressions: key (type: string), substr(value, 5) (type: string)
-                      sort order: ++
-                      Map-reduce partition columns: key (type: string)
-                      Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
-        Map 5 
             Map Operator Tree:
                 TableScan
                   alias: src
@@ -812,24 +798,10 @@ STAGE PLANS:
     Spark
       Edges:
         Reducer 2 <- Map 4 (GROUP PARTITION-LEVEL SORT, 2)
-        Reducer 3 <- Map 5 (GROUP PARTITION-LEVEL SORT, 2)
+        Reducer 3 <- Map 4 (GROUP PARTITION-LEVEL SORT, 2)
 #### A masked pattern was here ####
       Vertices:
         Map 4 
-            Map Operator Tree:
-                TableScan
-                  alias: src
-                  Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
-                  Select Operator
-                    expressions: key (type: string), value (type: string)
-                    outputColumnNames: key, value
-                    Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
-                    Reduce Output Operator
-                      key expressions: key (type: string), substr(value, 5) (type: string)
-                      sort order: ++
-                      Map-reduce partition columns: key (type: string)
-                      Statistics: Num rows: 500 Data size: 5312 Basic stats: COMPLETE Column stats: NONE
-        Map 5 
             Map Operator Tree:
                 TableScan
                   alias: src
