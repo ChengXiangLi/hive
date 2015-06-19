@@ -80,7 +80,6 @@ public class OperatorComparatorFactory {
     comparatorMapping.put(GroupByOperator.class, new GroupByOperatorComparator());
     comparatorMapping.put(ReduceSinkOperator.class, new ReduceSinkOperatorComparator());
     comparatorMapping.put(FileSinkOperator.class, new FileSinkOperatorComparator());
-    comparatorMapping.put(UnionOperator.class, new UnionOperatorComparator());
     comparatorMapping.put(JoinOperator.class, new JoinOperatorComparator());
     comparatorMapping.put(MapJoinOperator.class, new MapJoinOperatorComparator());
     comparatorMapping.put(SMBMapJoinOperator.class, new SMBMapJoinOperatorComparator());
@@ -96,6 +95,7 @@ public class OperatorComparatorFactory {
     comparatorMapping.put(ScriptOperator.class, new ScriptOperatorComparator());
     comparatorMapping.put(TemporaryHashSinkOperator.class, new HashTableSinkOperatorComparator());
     // these operators does not have state, so they always equal with the same kind.
+    comparatorMapping.put(UnionOperator.class, new AlwaysTrueOperatorComparator());
     comparatorMapping.put(ForwardOperator.class, new AlwaysTrueOperatorComparator());
     comparatorMapping.put(LateralViewForwardOperator.class, new AlwaysTrueOperatorComparator());
     comparatorMapping.put(DemuxOperator.class, new AlwaysTrueOperatorComparator());
@@ -115,8 +115,8 @@ public class OperatorComparatorFactory {
     return operatorComparator;
   }
 
-  public static interface OperatorComparator<T extends Operator<?>> {
-    public boolean equals(T op1, T op2);
+  public interface OperatorComparator<T extends Operator<?>> {
+    boolean equals(T op1, T op2);
   }
 
   static class AlwaysTrueOperatorComparator implements OperatorComparator<Operator<?>> {
@@ -148,13 +148,14 @@ public class OperatorComparatorFactory {
       TableScanDesc op1Conf = op1.getConf();
       TableScanDesc op2Conf = op2.getConf();
 
-      boolean result = true;
-      result = result && compareString(op1Conf.getAlias(), op2Conf.getAlias());
-      result = result && compareExprNodeDesc(op1Conf.getFilterExpr(), op2Conf.getFilterExpr());
-      result = result && (op1Conf.getRowLimit() == op2Conf.getRowLimit());
-      result = result && (op1Conf.isGatherStats() == op2Conf.isGatherStats());
-
-      return result;
+      if (compareString(op1Conf.getAlias(), op2Conf.getAlias()) &&
+        compareExprNodeDesc(op1Conf.getFilterExpr(), op2Conf.getFilterExpr()) &&
+        op1Conf.getRowLimit() == op2Conf.getRowLimit() &&
+        op1Conf.isGatherStats() == op2Conf.isGatherStats()) {
+        return true;
+      } else {
+        return false;
+      }
     }
   }
 
@@ -167,12 +168,13 @@ public class OperatorComparatorFactory {
       SelectDesc op1Conf = op1.getConf();
       SelectDesc op2Conf = op2.getConf();
 
-      boolean result = true;
-      result = result && compareString(op1Conf.getColListString(), op2Conf.getColListString());
-      result = result && compareObject(op1Conf.getOutputColumnNames(), op2Conf.getOutputColumnNames());
-      result = result && compareString(op1Conf.explainNoCompute(), op2Conf.explainNoCompute());
-
-      return result;
+      if (compareString(op1Conf.getColListString(), op2Conf.getColListString()) &&
+        compareObject(op1Conf.getOutputColumnNames(), op2Conf.getOutputColumnNames()) &&
+        compareString(op1Conf.explainNoCompute(), op2Conf.explainNoCompute())) {
+        return true;
+      } else {
+        return false;
+      }
     }
   }
 
@@ -185,12 +187,13 @@ public class OperatorComparatorFactory {
       FilterDesc op1Conf = op1.getConf();
       FilterDesc op2Conf = op2.getConf();
 
-      boolean result = true;
-      result = result && compareString(op1Conf.getPredicateString(), op2Conf.getPredicateString());
-      result = result && (op1Conf.getIsSamplingPred() == op2Conf.getIsSamplingPred());
-      result = result && compareString(op1Conf.getSampleDescExpr(), op2Conf.getSampleDescExpr());
-
-      return result;
+      if (compareString(op1Conf.getPredicateString(), op2Conf.getPredicateString()) &&
+        (op1Conf.getIsSamplingPred() == op2Conf.getIsSamplingPred()) &&
+        compareString(op1Conf.getSampleDescExpr(), op2Conf.getSampleDescExpr())) {
+        return true;
+      } else {
+        return false;
+      }
     }
   }
 
@@ -203,15 +206,16 @@ public class OperatorComparatorFactory {
       GroupByDesc op1Conf = op1.getConf();
       GroupByDesc op2Conf = op2.getConf();
 
-      boolean result = true;
-      result = result && compareString(op1Conf.getModeString(), op2Conf.getModeString());
-      result = result && compareString(op1Conf.getKeyString(), op2Conf.getKeyString());
-      result = result && compareObject(op1Conf.getOutputColumnNames(), op2Conf.getOutputColumnNames());
-      result = result && (op1Conf.pruneGroupingSetId() == op2Conf.pruneGroupingSetId());
-      result = result && compareObject(op1Conf.getAggregatorStrings(), op2Conf.getAggregatorStrings());
-      result = result && (op1Conf.getBucketGroup() == op2Conf.getBucketGroup());
-
-      return result;
+      if (compareString(op1Conf.getModeString(), op2Conf.getModeString()) &&
+        compareString(op1Conf.getKeyString(), op2Conf.getKeyString()) &&
+        compareObject(op1Conf.getOutputColumnNames(), op2Conf.getOutputColumnNames()) &&
+        op1Conf.pruneGroupingSetId() == op2Conf.pruneGroupingSetId() &&
+        compareObject(op1Conf.getAggregatorStrings(), op2Conf.getAggregatorStrings()) &&
+        op1Conf.getBucketGroup() == op2Conf.getBucketGroup()) {
+        return true;
+      } else {
+        return false;
+      }
     }
   }
 
@@ -224,16 +228,17 @@ public class OperatorComparatorFactory {
       ReduceSinkDesc op1Conf = op1.getConf();
       ReduceSinkDesc op2Conf = op2.getConf();
 
-      boolean result = true;
-      result = result && compareExprNodeDescList(op1Conf.getKeyCols(), op2Conf.getKeyCols());
-      result = result && compareExprNodeDescList(op1Conf.getValueCols(), op2Conf.getValueCols());
-      result = result && compareExprNodeDescList(op1Conf.getPartitionCols(), op2Conf.getPartitionCols());
-      result = result && (op1Conf.getTag() == op2Conf.getTag());
-      result = result && compareString(op1Conf.getOrder(), op2Conf.getOrder());
-      result = result && (op1Conf.getTopN() == op2Conf.getTopN());
-      result = result && (op1Conf.isAutoParallel() == op2Conf.isAutoParallel());
-
-      return result;
+      if (compareExprNodeDescList(op1Conf.getKeyCols(), op2Conf.getKeyCols()) &&
+        compareExprNodeDescList(op1Conf.getValueCols(), op2Conf.getValueCols()) &&
+        compareExprNodeDescList(op1Conf.getPartitionCols(), op2Conf.getPartitionCols()) &&
+        op1Conf.getTag() == op2Conf.getTag() &&
+        compareString(op1Conf.getOrder(), op2Conf.getOrder()) &&
+        op1Conf.getTopN() == op2Conf.getTopN() &&
+        op1Conf.isAutoParallel() == op2Conf.isAutoParallel()) {
+        return true;
+      } else {
+        return false;
+      }
     }
   }
 
@@ -246,29 +251,20 @@ public class OperatorComparatorFactory {
       FileSinkDesc op1Conf = op1.getConf();
       FileSinkDesc op2Conf = op2.getConf();
 
-      boolean result = true;
-      result = result && compareObject(op1Conf.getDirName(), op2Conf.getDirName());
-      result = result && compareObject(op1Conf.getTableInfo(), op2Conf.getTableInfo());
-      result = result && (op1Conf.getCompressed() == op2Conf.getCompressed());
-      result = result && (op1Conf.getDestTableId() == op2Conf.getDestTableId());
-      result = result && (op1Conf.isMultiFileSpray() == op2Conf.isMultiFileSpray());
-      result = result && (op1Conf.getTotalFiles() == op2Conf.getTotalFiles());
-      result = result && (op1Conf.getNumFiles() == op2Conf.getNumFiles());
-      result = result && compareString(op1Conf.getStaticSpec(), op2Conf.getStaticSpec());
-      result = result && (op1Conf.isGatherStats() == op2Conf.isGatherStats());
-      result = result && compareString(op1Conf.getStatsAggPrefix(), op2Conf.getStatsAggPrefix());
-
-      return result;
-    }
-  }
-
-  static class UnionOperatorComparator implements OperatorComparator<UnionOperator> {
-
-    @Override
-    public boolean equals(UnionOperator op1, UnionOperator op2) {
-      Preconditions.checkNotNull(op1);
-      Preconditions.checkNotNull(op2);
-      return true;
+      if (compareObject(op1Conf.getDirName(), op2Conf.getDirName()) &&
+        compareObject(op1Conf.getTableInfo(), op2Conf.getTableInfo()) &&
+        op1Conf.getCompressed() == op2Conf.getCompressed() &&
+        op1Conf.getDestTableId() == op2Conf.getDestTableId() &&
+        op1Conf.isMultiFileSpray() == op2Conf.isMultiFileSpray() &&
+        op1Conf.getTotalFiles() == op2Conf.getTotalFiles() &&
+        op1Conf.getNumFiles() == op2Conf.getNumFiles() &&
+        compareString(op1Conf.getStaticSpec(), op2Conf.getStaticSpec()) &&
+        op1Conf.isGatherStats() == op2Conf.isGatherStats() &&
+        compareString(op1Conf.getStatsAggPrefix(), op2Conf.getStatsAggPrefix())) {
+        return true;
+      } else {
+        return false;
+      }
     }
   }
 
@@ -281,15 +277,16 @@ public class OperatorComparatorFactory {
       JoinDesc desc1 = op1.getConf();
       JoinDesc desc2 = op2.getConf();
 
-      boolean result = true;
-      result = result && compareObject(desc1.getKeysString(), desc2.getKeysString());
-      result = result && compareObject(desc1.getFiltersStringMap(), desc2.getFiltersStringMap());
-      result = result && compareObject(desc1.getOutputColumnNames(), desc2.getOutputColumnNames());
-      result = result && compareObject(desc1.getCondsList(), desc2.getCondsList());
-      result = result && (desc1.getHandleSkewJoin() == desc2.getHandleSkewJoin());
-      result = result && compareString(desc1.getNullSafeString(), desc2.getNullSafeString());
-
-      return result;
+      if (compareObject(desc1.getKeysString(), desc2.getKeysString()) &&
+        compareObject(desc1.getFiltersStringMap(), desc2.getFiltersStringMap()) &&
+        compareObject(desc1.getOutputColumnNames(), desc2.getOutputColumnNames()) &&
+        compareObject(desc1.getCondsList(), desc2.getCondsList()) &&
+        desc1.getHandleSkewJoin() == desc2.getHandleSkewJoin() &&
+        compareString(desc1.getNullSafeString(), desc2.getNullSafeString())) {
+        return true;
+      } else {
+        return false;
+      }
     }
   }
 
@@ -302,21 +299,21 @@ public class OperatorComparatorFactory {
       MapJoinDesc desc1 = op1.getConf();
       MapJoinDesc desc2 = op2.getConf();
 
-      boolean result = true;
-      result = result && compareObject(desc1.getParentToInput(), desc2.getParentToInput());
-      result = result && compareString(desc1.getKeyCountsExplainDesc(), desc2.getKeyCountsExplainDesc());
-      result = result && compareObject(desc1.getKeysString(), desc2.getKeysString());
-      result = result && (desc1.getPosBigTable() == desc2.getPosBigTable());
-      result = result && (desc1.isBucketMapJoin() == desc2.isBucketMapJoin());
-
-      result = result && compareObject(desc1.getKeysString(), desc2.getKeysString());
-      result = result && compareObject(desc1.getFiltersStringMap(), desc2.getFiltersStringMap());
-      result = result && compareObject(desc1.getOutputColumnNames(), desc2.getOutputColumnNames());
-      result = result && compareObject(desc1.getCondsList(), desc2.getCondsList());
-      result = result && (desc1.getHandleSkewJoin() == desc2.getHandleSkewJoin());
-      result = result && compareString(desc1.getNullSafeString(), desc2.getNullSafeString());
-
-      return result;
+      if (compareObject(desc1.getParentToInput(), desc2.getParentToInput()) &&
+        compareString(desc1.getKeyCountsExplainDesc(), desc2.getKeyCountsExplainDesc()) &&
+        compareObject(desc1.getKeysString(), desc2.getKeysString()) &&
+        desc1.getPosBigTable() == desc2.getPosBigTable() &&
+        desc1.isBucketMapJoin() == desc2.isBucketMapJoin() &&
+        compareObject(desc1.getKeysString(), desc2.getKeysString()) &&
+        compareObject(desc1.getFiltersStringMap(), desc2.getFiltersStringMap()) &&
+        compareObject(desc1.getOutputColumnNames(), desc2.getOutputColumnNames()) &&
+        compareObject(desc1.getCondsList(), desc2.getCondsList()) &&
+        desc1.getHandleSkewJoin() == desc2.getHandleSkewJoin() &&
+        compareString(desc1.getNullSafeString(), desc2.getNullSafeString())) {
+        return true;
+      } else {
+        return false;
+      }
     }
   }
 
@@ -329,21 +326,22 @@ public class OperatorComparatorFactory {
       SMBJoinDesc desc1 = op1.getConf();
       SMBJoinDesc desc2 = op2.getConf();
 
-      boolean result = true;
-      result = result && compareObject(desc1.getParentToInput(), desc2.getParentToInput());
-      result = result && compareString(desc1.getKeyCountsExplainDesc(), desc2.getKeyCountsExplainDesc());
-      result = result && compareObject(desc1.getKeysString(), desc2.getKeysString());
-      result = result && (desc1.getPosBigTable() == desc2.getPosBigTable());
-      result = result && (desc1.isBucketMapJoin() == desc2.isBucketMapJoin());
+      if (compareObject(desc1.getParentToInput(), desc2.getParentToInput()) &&
+        compareString(desc1.getKeyCountsExplainDesc(), desc2.getKeyCountsExplainDesc()) &&
+        compareObject(desc1.getKeysString(), desc2.getKeysString()) &&
+        desc1.getPosBigTable() == desc2.getPosBigTable() &&
+        desc1.isBucketMapJoin() == desc2.isBucketMapJoin() &&
 
-      result = result && compareObject(desc1.getKeysString(), desc2.getKeysString());
-      result = result && compareObject(desc1.getFiltersStringMap(), desc2.getFiltersStringMap());
-      result = result && compareObject(desc1.getOutputColumnNames(), desc2.getOutputColumnNames());
-      result = result && compareObject(desc1.getCondsList(), desc2.getCondsList());
-      result = result && (desc1.getHandleSkewJoin() == desc2.getHandleSkewJoin());
-      result = result && compareString(desc1.getNullSafeString(), desc2.getNullSafeString());
-
-      return result;
+        compareObject(desc1.getKeysString(), desc2.getKeysString()) &&
+        compareObject(desc1.getFiltersStringMap(), desc2.getFiltersStringMap()) &&
+        compareObject(desc1.getOutputColumnNames(), desc2.getOutputColumnNames()) &&
+        compareObject(desc1.getCondsList(), desc2.getCondsList()) &&
+        desc1.getHandleSkewJoin() == desc2.getHandleSkewJoin() &&
+        compareString(desc1.getNullSafeString(), desc2.getNullSafeString())) {
+        return true;
+      } else {
+        return false;
+      }
     }
   }
 
@@ -369,19 +367,19 @@ public class OperatorComparatorFactory {
       SparkHashTableSinkDesc desc1 = op1.getConf();
       SparkHashTableSinkDesc desc2 = op2.getConf();
 
-      boolean result = true;
-      result = result && compareObject(desc1.getFilterMapString(), desc2.getFilterMapString());
-      result = result && compareObject(desc1.getKeysString(), desc2.getKeysString());
-      result = result && (desc1.getPosBigTable() == desc2.getPosBigTable());
-
-      result = result && compareObject(desc1.getKeysString(), desc2.getKeysString());
-      result = result && compareObject(desc1.getFiltersStringMap(), desc2.getFiltersStringMap());
-      result = result && compareObject(desc1.getOutputColumnNames(), desc2.getOutputColumnNames());
-      result = result && compareObject(desc1.getCondsList(), desc2.getCondsList());
-      result = result && (desc1.getHandleSkewJoin() == desc2.getHandleSkewJoin());
-      result = result && compareString(desc1.getNullSafeString(), desc2.getNullSafeString());
-
-      return result;
+      if (compareObject(desc1.getFilterMapString(), desc2.getFilterMapString()) &&
+        compareObject(desc1.getKeysString(), desc2.getKeysString()) &&
+        desc1.getPosBigTable() == desc2.getPosBigTable() &&
+        compareObject(desc1.getKeysString(), desc2.getKeysString()) &&
+        compareObject(desc1.getFiltersStringMap(), desc2.getFiltersStringMap()) &&
+        compareObject(desc1.getOutputColumnNames(), desc2.getOutputColumnNames()) &&
+        compareObject(desc1.getCondsList(), desc2.getCondsList()) &&
+        desc1.getHandleSkewJoin() == desc2.getHandleSkewJoin() &&
+        compareString(desc1.getNullSafeString(), desc2.getNullSafeString())) {
+        return true;
+      } else {
+        return false;
+      }
     }
   }
 
@@ -394,19 +392,20 @@ public class OperatorComparatorFactory {
       HashTableSinkDesc desc1 = op1.getConf();
       HashTableSinkDesc desc2 = op2.getConf();
 
-      boolean result = true;
-      result = result && compareObject(desc1.getFilterMapString(), desc2.getFilterMapString());
-      result = result && compareObject(desc1.getKeysString(), desc2.getKeysString());
-      result = result && (desc1.getPosBigTable() == desc2.getPosBigTable());
+      if (compareObject(desc1.getFilterMapString(), desc2.getFilterMapString()) &&
+        compareObject(desc1.getKeysString(), desc2.getKeysString()) &&
+        desc1.getPosBigTable() == desc2.getPosBigTable() &&
 
-      result = result && compareObject(desc1.getKeysString(), desc2.getKeysString());
-      result = result && compareObject(desc1.getFiltersStringMap(), desc2.getFiltersStringMap());
-      result = result && compareObject(desc1.getOutputColumnNames(), desc2.getOutputColumnNames());
-      result = result && compareObject(desc1.getCondsList(), desc2.getCondsList());
-      result = result && (desc1.getHandleSkewJoin() == desc2.getHandleSkewJoin());
-      result = result && compareString(desc1.getNullSafeString(), desc2.getNullSafeString());
-
-      return result;
+        compareObject(desc1.getKeysString(), desc2.getKeysString()) &&
+        compareObject(desc1.getFiltersStringMap(), desc2.getFiltersStringMap()) &&
+        compareObject(desc1.getOutputColumnNames(), desc2.getOutputColumnNames()) &&
+        compareObject(desc1.getCondsList(), desc2.getCondsList()) &&
+        desc1.getHandleSkewJoin() == desc2.getHandleSkewJoin() &&
+        compareString(desc1.getNullSafeString(), desc2.getNullSafeString())) {
+        return true;
+      } else {
+        return false;
+      }
     }
   }
 
@@ -432,11 +431,12 @@ public class OperatorComparatorFactory {
       ScriptDesc desc1 = op1.getConf();
       ScriptDesc desc2 = op2.getConf();
 
-      boolean result = true;
-      result = result && compareString(desc1.getScriptCmd(), desc2.getScriptCmd());
-      result = result && compareObject(desc1.getScriptOutputInfo(), desc2.getScriptOutputInfo());
-
-      return result;
+      if (compareString(desc1.getScriptCmd(), desc2.getScriptCmd()) &&
+        compareObject(desc1.getScriptOutputInfo(), desc2.getScriptOutputInfo())) {
+        return true;
+      } else {
+        return false;
+      }
     }
   }
 
@@ -449,11 +449,12 @@ public class OperatorComparatorFactory {
       UDTFDesc desc1 = op1.getConf();
       UDTFDesc desc2 = op2.getConf();
 
-      boolean result = true;
-      result = result && compareString(desc1.getUDTFName(), desc2.getUDTFName());
-      result = result && compareString(desc1.isOuterLateralView(), desc2.isOuterLateralView());
-
-      return result;
+      if (compareString(desc1.getUDTFName(), desc2.getUDTFName()) &&
+        compareString(desc1.isOuterLateralView(), desc2.isOuterLateralView())) {
+        return true;
+      } else {
+        return false;
+      }
     }
   }
 

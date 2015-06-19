@@ -90,15 +90,15 @@ public class CombineEquivalentWorkResolver implements PhysicalPlanResolver {
       // combine equivalent work into single one in SparkWork's work graph.
       Set<BaseWork> removedWorks = combineEquivalentWorks(equivalentWorks, sparkWork);
 
-      Set<BaseWork> children = Sets.newHashSet();
       // try to combine next level works recursively.
       for (BaseWork work : works) {
         if (!removedWorks.contains(work)) {
+          Set<BaseWork> children = Sets.newHashSet();
           children.addAll(sparkWork.getChildren(work));
+          if (children.size() > 0) {
+            compareWorksRecursively(children, sparkWork);
+          }
         }
-      }
-      if (children.size() > 0) {
-        compareWorksRecursively(children, sparkWork);
       }
     }
 
@@ -154,14 +154,18 @@ public class CombineEquivalentWorkResolver implements PhysicalPlanResolver {
       updateReference(previous, current, sparkWork);
       List<BaseWork> parents = sparkWork.getParents(previous);
       List<BaseWork> children = sparkWork.getChildren(previous);
-      for (BaseWork parent : parents) {
-        // we do not need to connect its parent to its counterpart, as they have the same parents.
-        sparkWork.disconnect(parent, previous);
+      if (parents != null) {
+        for (BaseWork parent : parents) {
+          // we do not need to connect its parent to its counterpart, as they have the same parents.
+          sparkWork.disconnect(parent, previous);
+        }
       }
-      for (BaseWork child : children) {
-        SparkEdgeProperty edgeProperty = sparkWork.getEdgeProperty(previous, child);
-        sparkWork.disconnect(previous, child);
-        sparkWork.connect(current, child, edgeProperty);
+      if (children != null) {
+        for (BaseWork child : children) {
+          SparkEdgeProperty edgeProperty = sparkWork.getEdgeProperty(previous, child);
+          sparkWork.disconnect(previous, child);
+          sparkWork.connect(current, child, edgeProperty);
+        }
       }
       sparkWork.remove(previous);
     }
