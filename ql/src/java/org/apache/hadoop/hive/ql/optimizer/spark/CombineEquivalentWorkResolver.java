@@ -69,7 +69,7 @@ public class CombineEquivalentWorkResolver implements PhysicalPlanResolver {
     private Comparator<BaseWork> baseWorkComparator = new Comparator<BaseWork>() {
       @Override
       public int compare(BaseWork o1, BaseWork o2) {
-        return o1.getName().hashCode() - o2.getName().hashCode();
+        return o1.getName().compareTo(o2.getName());
       }
     };
 
@@ -204,6 +204,8 @@ public class CombineEquivalentWorkResolver implements PhysicalPlanResolver {
         return false;
       }
 
+      // leave work's output may be read in further SparkWork/FetchWork, we should not combine
+      // leave works without notifying further SparkWork/FetchWork.
       if (sparkWork.getLeaves().contains(first) && sparkWork.getLeaves().contains(second)) {
         return false;
       }

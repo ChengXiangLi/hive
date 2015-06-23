@@ -331,7 +331,6 @@ public class OperatorComparatorFactory {
         compareObject(desc1.getKeysString(), desc2.getKeysString()) &&
         desc1.getPosBigTable() == desc2.getPosBigTable() &&
         desc1.isBucketMapJoin() == desc2.isBucketMapJoin() &&
-
         compareObject(desc1.getKeysString(), desc2.getKeysString()) &&
         compareObject(desc1.getFiltersStringMap(), desc2.getFiltersStringMap()) &&
         compareObject(desc1.getOutputColumnNames(), desc2.getOutputColumnNames()) &&
@@ -395,7 +394,6 @@ public class OperatorComparatorFactory {
       if (compareObject(desc1.getFilterMapString(), desc2.getFilterMapString()) &&
         compareObject(desc1.getKeysString(), desc2.getKeysString()) &&
         desc1.getPosBigTable() == desc2.getPosBigTable() &&
-
         compareObject(desc1.getKeysString(), desc2.getKeysString()) &&
         compareObject(desc1.getFiltersStringMap(), desc2.getFiltersStringMap()) &&
         compareObject(desc1.getOutputColumnNames(), desc2.getOutputColumnNames()) &&
